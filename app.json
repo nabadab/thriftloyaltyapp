@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.quiltsoftware.thriftloyalty"
+      "bundleIdentifier": "com.quiltsoftware.thriftloyalty",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,6 +33,11 @@
     },
     "plugins": [
       "expo-dev-client"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9862bae8-d770-4efe-ac83-a57d28e05d2c"
+      }
+    }
   }
 }
