@@ -6,6 +6,7 @@ import { RootStackParamList } from '../types';
 import { LoginScreen } from '../screens/LoginScreen';
 import { VerifyOTPScreen } from '../screens/VerifyOTPScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { StoreSelectorScreen } from '../screens/StoreSelectorScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -44,7 +45,12 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="VerifyOTP" component={VerifyOTPScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
-        {/* TODO: Add StoreSelector, Profile, TransactionHistory, Offers, LoyaltyCard screens */}
+        <Stack.Screen
+          name="StoreSelector"
+          component={StoreSelectorScreen}
+          options={{ presentation: 'modal' }}
+        />
+        {/* TODO: Add Profile, TransactionHistory, Offers, LoyaltyCard screens */}
       </Stack.Navigator>
     </NavigationContainer>
   );

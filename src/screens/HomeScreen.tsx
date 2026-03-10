@@ -6,12 +6,17 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  ActionSheetIOS,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 import { RootStackParamList, LoyaltyBalance, Store } from '../types';
 import { useTheme, Theme } from '../theme';
+import { StorageService } from '../services/storage';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -41,6 +46,43 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setRefreshing(false);
   };
 
+  const handleLogout = async () => {
+    await StorageService.clearAll();
+    navigation.replace('Login');
+  };
+
+  const handleProfileMenu = () => {
+    const options = ['Refresh', 'Log Out', 'Cancel'];
+    const destructiveIndex = 1;
+    const cancelIndex = 2;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, destructiveButtonIndex: destructiveIndex, cancelButtonIndex: cancelIndex },
+        (index) => {
+          if (index === 0) {
+            Toast.show({ type: 'info', text1: 'Refreshing...' });
+            onRefresh();
+          } else if (index === 1) {
+            handleLogout();
+          }
+        },
+      );
+    } else {
+      Alert.alert('Account', undefined, [
+        {
+          text: 'Refresh',
+          onPress: () => {
+            Toast.show({ type: 'info', text1: 'Refreshing...' });
+            onRefresh();
+          },
+        },
+        { text: 'Log Out', style: 'destructive', onPress: handleLogout },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  };
+
   return (
     <SafeAreaView style={s.container}>
       <View style={s.header}>
@@ -51,7 +93,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+        <TouchableOpacity onPress={handleProfileMenu}>
           <Text style={s.profileIcon}>👤</Text>
         </TouchableOpacity>
       </View>

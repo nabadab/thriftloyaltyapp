@@ -1,4 +1,5 @@
-const BASE_URL = 'https://api.thriftloyalty.com';
+const BASE_URL = 'https://thriftloyalty.com/api';
+const API_KEY = 'THRIFTLOYALTY_APP_2026';
 
 async function request<T>(
   path: string,
@@ -7,12 +8,16 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'X-API-Key': API_KEY,
+    'X-Client-Platform': 'thriftloyalty-app',
     ...(options.headers as Record<string, string>),
   };
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+
+  console.log(`[API] ${options.method ?? 'GET'} ${path}`, JSON.stringify(headers, null, 2));
 
   const response = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -21,6 +26,7 @@ async function request<T>(
 
   if (!response.ok) {
     const body = await response.text();
+    console.log(`[API] ${response.status} ${path}:`, body);
     throw new Error(`API error ${response.status}: ${body}`);
   }
 
@@ -110,6 +116,31 @@ export const ApiService = {
     return request<{ success: boolean }>('/me/active-store', {
       method: 'PUT',
       body: JSON.stringify({ storeId }),
+    }, token);
+  },
+
+  searchStores(token: string, query: string) {
+    return request<{
+      stores: Array<{
+        id: string;
+        name: string;
+        address: string;
+        phone?: string;
+        logoUrl?: string;
+        isMember: boolean;
+      }>;
+    }>(`/stores/search?q=${encodeURIComponent(query)}`, {}, token);
+  },
+
+  joinStore(token: string, storeId: string) {
+    return request<{ success: boolean }>(`/stores/${storeId}/join`, {
+      method: 'POST',
+    }, token);
+  },
+
+  leaveStore(token: string, storeId: string) {
+    return request<{ success: boolean }>(`/stores/${storeId}/leave`, {
+      method: 'POST',
     }, token);
   },
 };
