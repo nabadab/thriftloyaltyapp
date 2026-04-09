@@ -5,8 +5,6 @@ export type RootStackParamList = {
   StoreSelector: undefined;
   Profile: undefined;
   TransactionHistory: undefined;
-  Offers: undefined;
-  LoyaltyCard: undefined;
 };
 
 export type Store = {
@@ -15,14 +13,27 @@ export type Store = {
   address: string;
   phone?: string;
   logoUrl?: string;
+  customerId: string;
 };
 
-export type LoyaltyBalance = {
-  storeId: string;
-  label: string;
-  value: number;
-  type: 'dollar' | 'points' | 'visits' | 'custom';
-  displayValue: string;
+export type Reward = {
+  id: string;
+  name: string;
+  cost: string;
+  redeemable: boolean;
+  status: string | null;
+};
+
+export type PointType = {
+  name: string;
+  balance: number;
+  displayBalance: string;
+  rewards: Reward[];
+};
+
+export type LoyaltyData = {
+  welcomeMessage: string | null;
+  pointTypes: PointType[];
 };
 
 export type User = {
@@ -35,21 +46,39 @@ export type User = {
   activeStoreId: string | null;
 };
 
-export type Transaction = {
-  id: string;
-  storeId: string;
-  date: string;
-  description: string;
-  amount?: number;
-  pointsEarned?: number;
-  type: 'purchase' | 'reward' | 'adjustment';
+export type LineItem = {
+  name: string;
+  quantity: number;
+  price: number;
+  displayPrice: string;
 };
 
-export type Offer = {
-  id: string;
-  storeId: string;
-  title: string;
-  description: string;
-  expiresAt?: string;
-  imageUrl?: string;
+export type TenderLine = {
+  type: string;
+  amount: number;
+  displayAmount: string;
 };
+
+export type PointChange = {
+  pointType: string;
+  change: number;
+  displayChange: string;
+  reason: string | null;
+};
+
+export type Transaction = {
+  id: string;
+  date: string;
+  description: string;
+  type: 'purchase' | 'reward' | 'adjustment';
+  lineItems: LineItem[];
+  subtotal: number | null;
+  displaySubtotal: string | null;
+  salesTax: number | null;
+  displaySalesTax: string | null;
+  grandTotal: number | null;
+  displayGrandTotal: string | null;
+  tenders: TenderLine[];
+  pointChanges: PointChange[];
+};
+

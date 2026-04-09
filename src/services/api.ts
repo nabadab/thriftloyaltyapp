@@ -61,6 +61,7 @@ export const ApiService = {
         address: string;
         phone?: string;
         logoUrl?: string;
+        customerId: string;
       }>;
       activeStoreId: string | null;
     }>('/me', {}, token);
@@ -68,26 +69,57 @@ export const ApiService = {
 
   getBalances(token: string, storeId: string) {
     return request<{
-      balances: Array<{
-        label: string;
-        value: number;
-        type: string;
-        displayValue: string;
+      welcomeMessage: string | null;
+      pointTypes: Array<{
+        name: string;
+        balance: number;
+        displayBalance: string;
+        rewards: Array<{
+          id: string;
+          name: string;
+          cost: string;
+          redeemable: boolean;
+          status: string | null;
+        }>;
       }>;
     }>(`/stores/${storeId}/balances`, {}, token);
   },
 
-  getTransactions(token: string, storeId: string) {
+  getTransactions(token: string, storeId: string, offset = 0, limit = 20) {
     return request<{
       transactions: Array<{
         id: string;
         date: string;
         description: string;
-        amount?: number;
-        pointsEarned?: number;
         type: string;
+        lineItems: Array<{
+          name: string;
+          quantity: number;
+          price: number;
+          displayPrice: string;
+        }>;
+        subtotal: number | null;
+        displaySubtotal: string | null;
+        salesTax: number | null;
+        displaySalesTax: string | null;
+        grandTotal: number | null;
+        displayGrandTotal: string | null;
+        tenders: Array<{
+          type: string;
+          amount: number;
+          displayAmount: string;
+        }>;
+        pointChanges: Array<{
+          pointType: string;
+          change: number;
+          displayChange: string;
+          reason: string | null;
+        }>;
       }>;
-    }>(`/stores/${storeId}/transactions`, {}, token);
+      total: number;
+      limit: number;
+      offset: number;
+    }>(`/stores/${storeId}/transactions?limit=${limit}&offset=${offset}`, {}, token);
   },
 
   getOffers(token: string, storeId: string) {

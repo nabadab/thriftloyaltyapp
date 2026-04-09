@@ -7,6 +7,7 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { VerifyOTPScreen } from '../screens/VerifyOTPScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { StoreSelectorScreen } from '../screens/StoreSelectorScreen';
+import { TransactionHistoryScreen } from '../screens/TransactionHistoryScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -50,7 +51,12 @@ export const AppNavigator: React.FC = () => {
           component={StoreSelectorScreen}
           options={{ presentation: 'modal' }}
         />
-        {/* TODO: Add Profile, TransactionHistory, Offers, LoyaltyCard screens */}
+        <Stack.Screen
+          name="TransactionHistory"
+          component={TransactionHistoryScreen}
+          options={{ presentation: 'modal' }}
+        />
+        {/* TODO: Add Profile screen */}
       </Stack.Navigator>
     </NavigationContainer>
   );

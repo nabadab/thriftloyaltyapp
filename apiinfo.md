@@ -169,14 +169,16 @@ Get the authenticated user's profile, including all stores they belong to.
       "name": "Goodwill Downtown",
       "address": "123 Main St, Springfield, IL 62701",
       "phone": "(555) 987-6543",
-      "logoUrl": "https://thriftloyalty.com/logos/str_xyz789.png"
+      "logoUrl": "https://thriftloyalty.com/logos/str_xyz789.png",
+      "customerId": "48291"
     },
     {
       "id": "str_def456",
       "name": "Salvation Army East",
       "address": "456 Oak Ave, Springfield, IL 62702",
       "phone": null,
-      "logoUrl": null
+      "logoUrl": null,
+      "customerId": "10553"
     }
   ]
 }
@@ -201,6 +203,7 @@ Each store object:
 | `address` | string | Full address |
 | `phone` | string or null | Store phone number |
 | `logoUrl` | string or null | URL to store logo image. Null if not set. |
+| `customerId` | string | The user's ThriftCart internal customer ID at this store. Used by the app to generate the QR code for POS scanning. The QR code encodes the string `loyapp<customerId>` (e.g., `loyapp48291`). |
 
 ---
 
@@ -262,7 +265,7 @@ The API should verify the user actually belongs to this store.
 
 ### GET /stores/:storeId/balances
 
-Get the user's loyalty balances at a specific store. The response format is flexible because each store configures its own loyalty program.
+Get the user's loyalty balances and available rewards at a specific store. Each store can have multiple point types (e.g., "Points", "Appliance Points"), and each point type has its own balance and list of redeemable rewards.
 
 **Auth required:** App-level + Bearer token
 
@@ -270,45 +273,129 @@ Get the user's loyalty balances at a specific store. The response format is flex
 
 ```json
 {
-  "balances": [
+  "welcomeMessage": "Welcome to the Demo Thrift Store Loyalty Program! See your balances below!",
+  "pointTypes": [
     {
-      "label": "Store Credit",
-      "value": 24.50,
-      "type": "dollar",
-      "displayValue": "$24.50"
+      "name": "Points",
+      "balance": 230.00,
+      "displayBalance": "230.00",
+      "rewards": [
+        {
+          "id": "rwd_001",
+          "name": "$10 off",
+          "cost": "Use 200.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_002",
+          "name": "10% off",
+          "cost": "Use 200.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_003",
+          "name": "Test!",
+          "cost": "Use up to 230.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_004",
+          "name": "$5 off",
+          "cost": "Use 100.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_005",
+          "name": "$10 off",
+          "cost": "Use up to 230.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_006",
+          "name": "Redeem all",
+          "cost": "Use up to 230.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_007",
+          "name": "Tender points",
+          "cost": "Use up to 230.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_008",
+          "name": "Birthday Bonus",
+          "cost": "Use 0.00 points",
+          "redeemable": true,
+          "status": null
+        },
+        {
+          "id": "rwd_009",
+          "name": "$15 off",
+          "cost": "Requires 300.00 points",
+          "redeemable": false,
+          "status": "Insufficient points to redeem"
+        }
+      ]
     },
     {
-      "label": "Reward Points",
-      "value": 1350,
-      "type": "points",
-      "displayValue": "1,350 pts"
-    },
-    {
-      "label": "Visits This Month",
-      "value": 7,
-      "type": "visits",
-      "displayValue": "7 visits"
+      "name": "Appliance Points",
+      "balance": 2120.00,
+      "displayBalance": "2,120.00",
+      "rewards": [
+        {
+          "id": "rwd_010",
+          "name": "$10 off",
+          "cost": "Use 100.00 points",
+          "redeemable": true,
+          "status": null
+        }
+      ]
     }
   ]
 }
 ```
 
-Each balance object:
+Top-level fields:
 
 | Field | Type | Description |
 |---|---|---|
-| `label` | string | Human-readable label. Configured by the store. |
-| `value` | number | Raw numeric value (for sorting, calculations) |
-| `type` | string | One of: `dollar`, `points`, `visits`, `custom` |
-| `displayValue` | string | Pre-formatted string for display. The API controls the formatting so it's consistent with what the store shows at the POS. |
+| `welcomeMessage` | string or null | Optional store-configured welcome message. Displayed at the top of the loyalty screen. Null if the store hasn't set one. |
+| `pointTypes` | array | All point categories for this store's loyalty program. |
 
-The app displays whatever balances the API returns. If a store only uses dollar-based loyalty, it returns one item. If they use points + visits, it returns two. This keeps the app flexible without code changes.
+Each point type object:
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | string | The name of this point category (e.g., "Points", "Appliance Points"). |
+| `balance` | number | The user's current numeric balance in this point type. |
+| `displayBalance` | string | Pre-formatted balance string for display (e.g., "2,120.00"). |
+| `rewards` | array | Available rewards that can be redeemed with this point type. |
+
+Each reward object:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique reward ID. |
+| `name` | string | Reward name (e.g., "$10 off", "10% off", "Redeem all"). |
+| `cost` | string | Human-readable cost description (e.g., "Use 200.00 points", "Requires 300.00 points"). This string comes from the POS configuration. |
+| `redeemable` | boolean | Whether the user currently has enough points to redeem this reward. |
+| `status` | string or null | Status message when not redeemable (e.g., "Insufficient points to redeem"). Null when redeemable. |
+
+The app renders each point type as a card with the balance, followed by its reward list. Rewards that are `redeemable: false` are shown dimmed with the `status` text. The number of point types and rewards varies per store -- the app just renders whatever the API returns.
 
 ---
 
 ### GET /stores/:storeId/transactions
 
-Get the user's transaction and reward history at a specific store.
+Get the user's full transaction history at a specific store. Each transaction includes the complete receipt: line items, totals, payment methods, and point changes.
 
 **Auth required:** App-level + Bearer token
 
@@ -328,25 +415,116 @@ Get the user's transaction and reward history at a specific store.
       "id": "txn_001",
       "date": "2026-03-09T14:32:00Z",
       "description": "Purchase - Register 2",
-      "amount": -12.47,
-      "pointsEarned": 12,
-      "type": "purchase"
+      "type": "purchase",
+      "lineItems": [
+        {
+          "name": "Men's Dress Shirt",
+          "quantity": 1,
+          "price": 5.99,
+          "displayPrice": "$5.99"
+        },
+        {
+          "name": "Women's Jeans",
+          "quantity": 1,
+          "price": 7.99,
+          "displayPrice": "$7.99"
+        },
+        {
+          "name": "Hardcover Books",
+          "quantity": 3,
+          "price": 5.97,
+          "displayPrice": "$5.97"
+        }
+      ],
+      "subtotal": 19.95,
+      "displaySubtotal": "$19.95",
+      "salesTax": 1.50,
+      "displaySalesTax": "$1.50",
+      "grandTotal": 21.45,
+      "displayGrandTotal": "$21.45",
+      "tenders": [
+        {
+          "type": "Visa •••• 4242",
+          "amount": 21.45,
+          "displayAmount": "$21.45"
+        }
+      ],
+      "pointChanges": [
+        {
+          "pointType": "Points",
+          "change": 21,
+          "displayChange": "+21",
+          "reason": "1 point per dollar spent"
+        }
+      ]
     },
     {
       "id": "txn_002",
       "date": "2026-03-05T10:15:00Z",
-      "description": "Loyalty Reward Applied",
-      "amount": 5.00,
-      "pointsEarned": null,
-      "type": "reward"
+      "description": "Loyalty Reward Redeemed",
+      "type": "reward",
+      "lineItems": [],
+      "subtotal": null,
+      "displaySubtotal": null,
+      "salesTax": null,
+      "displaySalesTax": null,
+      "grandTotal": null,
+      "displayGrandTotal": null,
+      "tenders": [],
+      "pointChanges": [
+        {
+          "pointType": "Points",
+          "change": -200,
+          "displayChange": "-200",
+          "reason": "$10 off reward redeemed"
+        }
+      ]
     },
     {
       "id": "txn_003",
       "date": "2026-03-01T09:00:00Z",
-      "description": "Balance adjustment by store",
-      "amount": 2.00,
-      "pointsEarned": null,
-      "type": "adjustment"
+      "description": "Purchase - Register 1",
+      "type": "purchase",
+      "lineItems": [
+        {
+          "name": "Kitchen Mixer",
+          "quantity": 1,
+          "price": 12.99,
+          "displayPrice": "$12.99"
+        }
+      ],
+      "subtotal": 12.99,
+      "displaySubtotal": "$12.99",
+      "salesTax": 0.97,
+      "displaySalesTax": "$0.97",
+      "grandTotal": 13.96,
+      "displayGrandTotal": "$13.96",
+      "tenders": [
+        {
+          "type": "Cash",
+          "amount": 10.00,
+          "displayAmount": "$10.00"
+        },
+        {
+          "type": "Visa •••• 4242",
+          "amount": 3.96,
+          "displayAmount": "$3.96"
+        }
+      ],
+      "pointChanges": [
+        {
+          "pointType": "Points",
+          "change": 13,
+          "displayChange": "+13",
+          "reason": "1 point per dollar spent"
+        },
+        {
+          "pointType": "Appliance Points",
+          "change": 100,
+          "displayChange": "+100",
+          "reason": "Appliance purchase bonus"
+        }
+      ]
     }
   ],
   "total": 45,
@@ -361,10 +539,43 @@ Each transaction object:
 |---|---|---|
 | `id` | string | Unique transaction ID |
 | `date` | string | ISO 8601 timestamp (UTC) |
-| `description` | string | Human-readable description |
-| `amount` | number or null | Dollar amount. Negative for purchases/debits, positive for rewards/credits. Null if not applicable. |
-| `pointsEarned` | number or null | Points earned in this transaction. Null if not applicable. |
+| `description` | string | Summary line (e.g., "Purchase - Register 2", "Loyalty Reward Redeemed") |
 | `type` | string | One of: `purchase`, `reward`, `adjustment` |
+| `lineItems` | array | Items purchased. Empty array for reward/adjustment transactions. |
+| `subtotal` | number or null | Pre-tax total. Null for non-purchase transactions. |
+| `displaySubtotal` | string or null | Formatted subtotal (e.g., "$19.95"). |
+| `salesTax` | number or null | Tax amount. Null for non-purchase transactions. |
+| `displaySalesTax` | string or null | Formatted tax (e.g., "$1.50"). |
+| `grandTotal` | number or null | Final total including tax. Null for non-purchase transactions. |
+| `displayGrandTotal` | string or null | Formatted grand total (e.g., "$21.45"). |
+| `tenders` | array | Payment methods used. Empty array for non-purchase transactions. |
+| `pointChanges` | array | Point balance changes from this transaction. Empty array if none. |
+
+Each line item:
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | string | Item description |
+| `quantity` | integer | Quantity purchased |
+| `price` | number | Total price for this line (quantity x unit price) |
+| `displayPrice` | string | Formatted price (e.g., "$5.99") |
+
+Each tender:
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | string | Payment method description (e.g., "Cash", "Visa •••• 4242", "Store Credit") |
+| `amount` | number | Amount paid with this tender |
+| `displayAmount` | string | Formatted amount (e.g., "$21.45") |
+
+Each point change:
+
+| Field | Type | Description |
+|---|---|---|
+| `pointType` | string | Which point category (matches names from `/stores/:storeId/balances`) |
+| `change` | number | Positive for earned, negative for redeemed/deducted |
+| `displayChange` | string | Formatted with sign (e.g., "+21", "-200") |
+| `reason` | string or null | Explanation (e.g., "1 point per dollar spent", "$10 off reward redeemed"). Null if no specific reason. |
 
 Pagination fields:
 
@@ -419,29 +630,15 @@ The app displays these as cards. Offers with no `expiresAt` are shown without an
 
 ---
 
-### GET /me/qr
+### QR Code (Loyalty Card)
 
-Get the data the app should encode into the user's QR code for scanning at the POS.
+The QR code is generated client-side using the `customerId` field from the user's store object (returned by `GET /me`). No separate API endpoint is needed.
 
-**Auth required:** App-level + Bearer token
+**QR code format:** `loyapp<customerId>`
 
-**Response (200):**
+For example, if the user's `customerId` at their active store is `48291`, the QR code encodes the string `loyapp48291`. The POS scans this and strips the `loyapp` prefix to look up the customer.
 
-```json
-{
-  "qrData": "TL:usr_abc123:str_xyz789:1710086400:a3f8c1",
-  "expiresAt": "2026-03-10T16:00:00Z"
-}
-```
-
-| Field | Type | Description |
-|---|---|---|
-| `qrData` | string | The exact string to encode into the QR code. The POS decodes this to look up the customer. |
-| `expiresAt` | string | When this QR data expires. The app should refresh before this time. |
-
-The `qrData` format is up to you, but the suggested format is: `TL:<userId>:<activeStoreId>:<timestamp>:<signature>` where the signature is a truncated HMAC so the POS can verify it wasn't fabricated. This way the QR code is time-limited and tied to a specific store.
-
-The app should call this endpoint each time the user opens the Loyalty Card screen, and refresh if the current QR has less than 5 minutes remaining.
+The app refreshes the customer ID whenever the user profile is loaded (on login, store switch, or manual refresh).
 
 ---
 
@@ -555,7 +752,7 @@ If the user leaves their active store, the API should set `activeStoreId` to the
 | GET | `/stores/:storeId/balances` | API key + JWT | Get loyalty balances |
 | GET | `/stores/:storeId/transactions` | API key + JWT | Get transaction history |
 | GET | `/stores/:storeId/offers` | API key + JWT | Get available offers |
-| GET | `/me/qr` | API key + JWT | Get QR code data for POS scanning |
+| -- | QR code | Generated client-side | `loyapp<customerId>` from `/me` store data |
 | GET | `/stores/search?q=...` | API key + JWT | Search for stores to join |
 | POST | `/stores/:storeId/join` | API key + JWT | Join a store's loyalty program |
 | POST | `/stores/:storeId/leave` | API key + JWT | Leave a store's loyalty program |
