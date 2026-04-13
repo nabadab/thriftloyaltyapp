@@ -1,6 +1,13 @@
 const BASE_URL = 'https://thriftloyalty.com/api';
 const API_KEY = 'THRIFTLOYALTY_APP_2026';
 
+function redactHeadersForLog(h: Record<string, string>): Record<string, string> {
+  const out = { ...h };
+  if (out['X-API-Key']) out['X-API-Key'] = '***';
+  if (out['Authorization']) out['Authorization'] = 'Bearer ***';
+  return out;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -17,20 +24,44 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  console.log(`[API] ${options.method ?? 'GET'} ${path}`, JSON.stringify(headers, null, 2));
+  const method = options.method ?? 'GET';
+  const url = `${BASE_URL}${path}`;
+  const payload =
+    typeof options.body === 'string'
+      ? options.body
+      : options.body != null
+        ? '[non-string body]'
+        : undefined;
 
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const started = Date.now();
+  console.log(`[API] → ${method} ${url}`);
+  if (payload !== undefined) {
+    console.log(`[API] → payload (outgoing):`, payload);
+  }
+  console.log(`[API] → headers:`, JSON.stringify(redactHeadersForLog(headers), null, 2));
+
+  const response = await fetch(url, {
     ...options,
     headers,
   });
 
+  const elapsedMs = Date.now() - started;
+  const responseText = await response.text();
+
+  console.log(
+    `[API] ← ${method} ${path} status=${response.status} elapsedMs=${elapsedMs}`,
+  );
+  console.log(`[API] ← response body:`, responseText);
+
   if (!response.ok) {
-    const body = await response.text();
-    console.log(`[API] ${response.status} ${path}:`, body);
-    throw new Error(`API error ${response.status}: ${body}`);
+    throw new Error(`API error ${response.status}: ${responseText}`);
   }
 
-  return response.json();
+  try {
+    return JSON.parse(responseText) as T;
+  } catch {
+    throw new Error(`API returned non-JSON (${response.status}): ${responseText.slice(0, 500)}`);
+  }
 }
 
 export const ApiService = {
