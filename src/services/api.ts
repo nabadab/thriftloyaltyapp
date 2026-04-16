@@ -206,4 +206,16 @@ export const ApiService = {
       method: 'POST',
     }, token);
   },
+
+  deleteStoreAccount(token: string, storeId: string) {
+    return request<{ success: boolean }>(`/stores/${storeId}/account`, {
+      method: 'DELETE',
+    }, token);
+  },
+
+  deleteAccount(token: string) {
+    return request<{ success: boolean }>('/me', {
+      method: 'DELETE',
+    }, token);
+  },
 };

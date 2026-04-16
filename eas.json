@@ -24,9 +24,19 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "apk-verification": {
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "C:\\Users\\MichaelNehring\\Documents\\thriftcart-google-play-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

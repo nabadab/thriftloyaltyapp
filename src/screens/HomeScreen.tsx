@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,6 +37,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeStore, setActiveStore] = useState<Store | null>(null);
   const [loyaltyData, setLoyaltyData] = useState<LoyaltyData | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const allStoresRef = useRef<Store[]>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -43,6 +46,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       if (!token) return;
 
       const profile = await ApiService.getProfile(token);
+      allStoresRef.current = profile.stores;
       const store = profile.stores.find(
         (st) => st.id === profile.activeStoreId,
       ) ?? profile.stores[0] ?? null;
@@ -77,10 +81,137 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     navigation.replace('Login');
   };
 
+  const executeDeleteStoreAccount = async () => {
+    if (!activeStore) return;
+    setDeleting(true);
+    try {
+      const token = await StorageService.getAuthToken();
+      if (!token) return;
+      await ApiService.deleteStoreAccount(token, activeStore.id);
+      Toast.show({
+        type: 'success',
+        text1: 'Account deleted',
+        text2: `Your account at ${activeStore.name} has been erased.`,
+      });
+      await loadData();
+    } catch (err) {
+      console.log('[Home] Failed to delete store account:', err);
+      Toast.show({ type: 'error', text1: 'Failed to delete account' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const executeDeleteAllAccounts = async () => {
+    setDeleting(true);
+    try {
+      const token = await StorageService.getAuthToken();
+      if (!token) return;
+      await ApiService.deleteAccount(token);
+      await StorageService.clearAll();
+      Toast.show({
+        type: 'success',
+        text1: 'Account deleted',
+        text2: 'Your account and all store data have been erased.',
+      });
+      navigation.replace('Login');
+    } catch (err) {
+      console.log('[Home] Failed to delete account:', err);
+      Toast.show({ type: 'error', text1: 'Failed to delete account' });
+      setDeleting(false);
+    }
+  };
+
+  const confirmDeleteStoreAccount = () => {
+    if (!activeStore) return;
+    Alert.alert(
+      'Delete Account at This Store?',
+      `This will permanently erase your account at ${activeStore.name}.\n\nYour purchase history, loyalty points, and all personal data at this store will be lost and cannot be recovered.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you sure?',
+              `This action cannot be undone. Your loyalty points and purchase history at ${activeStore.name} will be permanently deleted.`,
+              [
+                { text: 'Go Back', style: 'cancel' },
+                { text: 'Delete Permanently', style: 'destructive', onPress: executeDeleteStoreAccount },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmDeleteAllAccounts = () => {
+    const storeCount = allStoresRef.current.length;
+    const storeWord = storeCount === 1 ? '1 store' : `${storeCount} stores`;
+    Alert.alert(
+      'Delete Account at All Stores?',
+      `This will permanently erase your account at all ${storeWord} and delete your ThriftLoyalty account entirely.\n\nAll purchase history, loyalty points, and personal data across every store will be lost and cannot be recovered.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you sure?',
+              'This action cannot be undone. Your entire account and all loyalty data at every store will be permanently deleted. You will be signed out.',
+              [
+                { text: 'Go Back', style: 'cancel' },
+                { text: 'Delete Permanently', style: 'destructive', onPress: executeDeleteAllAccounts },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const showDeleteMenu = () => {
+    const storeName = activeStore?.name ?? 'Current Store';
+
+    if (Platform.OS === 'ios') {
+      const options = [
+        `Delete Account at ${storeName}`,
+        'Delete Account at All Stores',
+        'Cancel',
+      ];
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: 'Delete Account',
+          message: 'Choose which account data to delete. This cannot be undone.',
+          options,
+          destructiveButtonIndex: [0, 1] as unknown as number,
+          cancelButtonIndex: 2,
+        },
+        (index) => {
+          if (index === 0) confirmDeleteStoreAccount();
+          else if (index === 1) confirmDeleteAllAccounts();
+        },
+      );
+    } else {
+      Alert.alert(
+        'Delete Account',
+        'Choose which account data to delete. This cannot be undone.',
+        [
+          { text: `Delete at ${storeName}`, style: 'destructive', onPress: confirmDeleteStoreAccount },
+          { text: 'Delete at All Stores', style: 'destructive', onPress: confirmDeleteAllAccounts },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
+    }
+  };
+
   const handleProfileMenu = () => {
-    const options = ['Refresh', 'Log Out', 'Cancel'];
-    const destructiveIndex = 1;
-    const cancelIndex = 2;
+    const options = ['Refresh', 'Delete Account...', 'Log Out', 'Cancel'];
+    const destructiveIndex = 2;
+    const cancelIndex = 3;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -90,6 +221,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             Toast.show({ type: 'info', text1: 'Refreshing...' });
             onRefresh();
           } else if (index === 1) {
+            showDeleteMenu();
+          } else if (index === 2) {
             handleLogout();
           }
         },
@@ -103,6 +236,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onRefresh();
           },
         },
+        { text: 'Delete Account...', onPress: showDeleteMenu },
         { text: 'Log Out', style: 'destructive', onPress: handleLogout },
         { text: 'Cancel', style: 'cancel' },
       ]);
@@ -222,6 +356,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <Text style={s.historyButtonText}>View Transaction History</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {deleting && (
+        <View style={s.deletingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={s.deletingText}>Deleting account...</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -391,5 +532,17 @@ const styles = (theme: Theme) =>
     emptyText: {
       fontSize: 15,
       color: theme.textTertiary,
+    },
+    deletingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    deletingText: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '500',
+      marginTop: 16,
     },
   });

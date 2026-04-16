@@ -14,7 +14,7 @@
       "backgroundColor": "#0f0f0f"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.quiltsoftware.thriftloyalty",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -26,13 +26,15 @@
         "backgroundColor": "#0f0f0f"
       },
       "package": "com.quiltsoftware.thriftloyalty",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-dev-client"
+      "expo-dev-client",
+      "./plugins/withAdiRegistration"
     ],
     "extra": {
       "eas": {
