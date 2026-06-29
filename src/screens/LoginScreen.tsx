@@ -3,18 +3,18 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
 import { RootStackParamList } from '../types';
 import { useTheme, Theme } from '../theme';
 import { ApiService } from '../services/api';
+import { GradientButton } from '../components/ui';
 
 type LoginScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -52,31 +52,43 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={s.content}
       >
-        <Text style={s.title}>ThriftLoyalty</Text>
-        <Text style={s.subtitle}>Enter your phone number to sign in</Text>
+        <View style={s.brandBlock}>
+          <LinearGradient
+            colors={theme.gradients.brand}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.logoBadge}
+          >
+            <Text style={s.logoMark}>🛍️</Text>
+          </LinearGradient>
+          <Text style={s.title}>ThriftLoyalty</Text>
+          <Text style={s.subtitle}>
+            Your points, rewards, and receipts — all in one place.
+          </Text>
+        </View>
 
-        <TextInput
-          style={s.input}
-          placeholder="Phone number"
-          placeholderTextColor={theme.textTertiary}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          autoCapitalize="none"
-          editable={!loading}
-        />
-
-        <TouchableOpacity
-          style={[s.button, loading && s.buttonDisabled]}
-          onPress={handleRequestOTP}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={s.buttonText}>Send Code</Text>
-          )}
-        </TouchableOpacity>
+        <View style={s.card}>
+          <Text style={s.label}>Phone number</Text>
+          <TextInput
+            style={s.input}
+            placeholder="(555) 123-4567"
+            placeholderTextColor={theme.textTertiary}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            autoCapitalize="none"
+            editable={!loading}
+          />
+          <GradientButton
+            label="Send Code"
+            onPress={handleRequestOTP}
+            loading={loading}
+            style={s.button}
+          />
+          <Text style={s.disclaimer}>
+            We'll text you a one-time code to sign in.
+          </Text>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -93,42 +105,70 @@ const styles = (theme: Theme) =>
       justifyContent: 'center',
       paddingHorizontal: 24,
     },
+    brandBlock: {
+      alignItems: 'center',
+      marginBottom: 36,
+    },
+    logoBadge: {
+      width: 88,
+      height: 88,
+      borderRadius: 26,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+      ...theme.shadow.hero,
+    },
+    logoMark: {
+      fontSize: 44,
+    },
     title: {
       fontSize: 32,
-      fontWeight: '700',
+      fontWeight: '800',
       color: theme.text,
       textAlign: 'center',
-      marginBottom: 8,
+      marginBottom: 10,
+      letterSpacing: 0.2,
     },
     subtitle: {
       fontSize: 16,
       color: theme.textSecondary,
       textAlign: 'center',
-      marginBottom: 40,
+      lineHeight: 22,
+      paddingHorizontal: 12,
+    },
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...theme.shadow.card,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.textSecondary,
+      marginBottom: 8,
+      marginLeft: 4,
     },
     input: {
       backgroundColor: theme.inputBackground,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 16,
-      fontSize: 16,
+      fontSize: 17,
       color: theme.text,
       borderWidth: 1,
       borderColor: theme.border,
-      marginBottom: 16,
+      marginBottom: 20,
     },
     button: {
-      backgroundColor: theme.accent,
-      borderRadius: 12,
-      padding: 16,
-      alignItems: 'center',
-      marginTop: 8,
+      marginTop: 0,
     },
-    buttonDisabled: {
-      opacity: 0.6,
-    },
-    buttonText: {
-      color: '#fff',
-      fontSize: 17,
-      fontWeight: '600',
+    disclaimer: {
+      fontSize: 13,
+      color: theme.textTertiary,
+      textAlign: 'center',
+      marginTop: 16,
+      lineHeight: 18,
     },
   });

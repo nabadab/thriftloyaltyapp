@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -22,6 +23,7 @@ import { RootStackParamList, LoyaltyData, PointType, Store } from '../types';
 import { useTheme, Theme } from '../theme';
 import { StorageService } from '../services/storage';
 import { ApiService } from '../services/api';
+import { Pill } from '../components/ui';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -37,6 +39,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeStore, setActiveStore] = useState<Store | null>(null);
   const [loyaltyData, setLoyaltyData] = useState<LoyaltyData | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const allStoresRef = useRef<Store[]>([]);
 
@@ -47,6 +50,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
       const profile = await ApiService.getProfile(token);
       allStoresRef.current = profile.stores;
+      setFirstName(profile.firstName ?? null);
       const store = profile.stores.find(
         (st) => st.id === profile.activeStoreId,
       ) ?? profile.stores[0] ?? null;
@@ -246,7 +250,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const renderPointType = (pt: PointType, index: number) => (
     <View key={index} style={s.pointTypeCard}>
       <View style={s.pointTypeHeader}>
-        <Text style={s.pointTypeName}>{pt.name}</Text>
+        <View style={s.pointTypeNameRow}>
+          <View style={s.pointDot} />
+          <Text style={s.pointTypeName}>{pt.name}</Text>
+        </View>
         <Text style={s.pointTypeBalance}>{pt.displayBalance}</Text>
       </View>
 
@@ -275,9 +282,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   {reward.cost}
                 </Text>
               </View>
-              {reward.status && (
+              {reward.status ? (
                 <Text style={s.rewardStatus}>{reward.status}</Text>
-              )}
+              ) : reward.redeemable ? (
+                <Pill label="Ready" tone="brand" />
+              ) : null}
             </View>
           ))}
         </View>
@@ -286,49 +295,75 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right']}>
       <View style={s.header}>
-        <View>
-          <TouchableOpacity onPress={() => navigation.navigate('StoreSelector')}>
-            <Text style={s.storeName}>
-              {activeStore?.name ?? 'Select Store'} ▾
+        <View style={s.headerLeft}>
+          {firstName ? (
+            <Text style={s.greeting}>Hi, {firstName} 👋</Text>
+          ) : (
+            <Text style={s.greeting}>Welcome back 👋</Text>
+          )}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('StoreSelector')}
+            style={s.storePicker}
+          >
+            <Text style={s.storeName} numberOfLines={1}>
+              {activeStore?.name ?? 'Select Store'}
             </Text>
+            <Text style={s.storeChevron}> ▾</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleProfileMenu}>
+        <TouchableOpacity onPress={handleProfileMenu} style={s.profileButton}>
           <Text style={s.profileIcon}>👤</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+          />
         }
       >
         {activeStore && (
-          <View style={s.cardSection}>
-            <View style={[s.cardRow, !isWide && s.cardRowNarrow]}>
-              {activeStore.logoUrl && (
+          <LinearGradient
+            colors={theme.gradients.brand}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.heroCard}
+          >
+            {activeStore.logoUrl ? (
+              <View style={s.logoChip}>
                 <Image
                   source={{ uri: activeStore.logoUrl, cache: 'force-cache' }}
-                  style={[s.storeLogo, !isWide && s.storeLogoNarrow]}
+                  style={[s.storeLogo, isWide && s.storeLogoWide]}
                   resizeMode="contain"
                 />
-              )}
-              <View style={s.qrWrapper}>
-                <QRCode
-                  value={`loyapp${activeStore.customerId}`}
-                  size={isWide ? 160 : 140}
-                  backgroundColor="#ffffff"
-                  color="#000000"
-                />
               </View>
+            ) : (
+              <Text style={s.heroStoreName} numberOfLines={2}>
+                {activeStore.name}
+              </Text>
+            )}
+
+            <View style={s.qrWrapper}>
+              <QRCode
+                value={`loyapp${activeStore.customerId}`}
+                size={isWide ? 180 : 156}
+                backgroundColor="#ffffff"
+                color="#0d1210"
+              />
             </View>
+
             <Text style={s.qrLabel}>
               Show at register to earn & redeem rewards
             </Text>
-          </View>
+            <Text style={s.customerId}>Member ID · {activeStore.customerId}</Text>
+          </LinearGradient>
         )}
 
         {loyaltyData?.welcomeMessage && (
@@ -338,22 +373,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         )}
 
         {loyaltyData && loyaltyData.pointTypes.length > 0 ? (
-          loyaltyData.pointTypes.map(renderPointType)
+          <>
+            <Text style={s.sectionLabel}>Your Rewards</Text>
+            {loyaltyData.pointTypes.map(renderPointType)}
+          </>
         ) : activeStore ? (
           <View style={s.emptyState}>
-            <Text style={s.emptyText}>No loyalty data available</Text>
+            <Text style={s.emptyEmoji}>🎁</Text>
+            <Text style={s.emptyText}>No loyalty data yet</Text>
+            <Text style={s.emptySub}>
+              Make a purchase and show your code to start earning.
+            </Text>
           </View>
         ) : (
           <View style={s.emptyState}>
-            <Text style={s.emptyText}>Select a store to view your balances</Text>
+            <Text style={s.emptyEmoji}>🏬</Text>
+            <Text style={s.emptyText}>Select a store</Text>
+            <Text style={s.emptySub}>
+              Choose a store to view your balances and rewards.
+            </Text>
           </View>
         )}
 
         <TouchableOpacity
           style={s.historyButton}
           onPress={() => navigation.navigate('TransactionHistory')}
+          activeOpacity={0.7}
         >
-          <Text style={s.historyButtonText}>View Transaction History</Text>
+          <Text style={s.historyButtonText}>🧾  View Transaction History</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -378,43 +425,138 @@ const styles = (theme: Theme) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 24,
-      paddingTop: 16,
-      paddingBottom: 8,
+      paddingTop: 12,
+      paddingBottom: 12,
+    },
+    headerLeft: {
+      flex: 1,
+      marginRight: 12,
+    },
+    greeting: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.textSecondary,
+      marginBottom: 2,
+    },
+    storePicker: {
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     storeName: {
-      fontSize: 20,
-      fontWeight: '600',
+      fontSize: 24,
+      fontWeight: '800',
       color: theme.text,
+      flexShrink: 1,
+    },
+    storeChevron: {
+      fontSize: 18,
+      fontWeight: '800',
+      color: theme.primary,
+    },
+    profileButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: theme.card,
+      borderWidth: 1,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     profileIcon: {
-      fontSize: 24,
+      fontSize: 22,
     },
     scrollContent: {
       paddingBottom: 40,
     },
-    welcomeBanner: {
-      backgroundColor: theme.card,
-      borderRadius: 12,
-      padding: 16,
+    heroCard: {
+      alignItems: 'center',
+      marginHorizontal: 20,
+      marginTop: 8,
+      borderRadius: 28,
+      paddingVertical: 28,
+      paddingHorizontal: 24,
+      ...theme.shadow.hero,
+    },
+    logoChip: {
+      backgroundColor: '#ffffff',
+      borderRadius: 18,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      marginBottom: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      maxWidth: '90%',
+    },
+    storeLogo: {
+      width: 200,
+      height: 96,
+    },
+    storeLogoWide: {
+      width: 260,
+      height: 120,
+    },
+    heroStoreName: {
+      fontSize: 26,
+      fontWeight: '800',
+      color: theme.onGradient,
+      textAlign: 'center',
+      marginBottom: 22,
+      paddingHorizontal: 8,
+    },
+    qrWrapper: {
+      backgroundColor: '#ffffff',
+      borderRadius: 20,
+      padding: 18,
+    },
+    qrLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.onGradient,
+      marginTop: 18,
+      textAlign: 'center',
+    },
+    customerId: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 6,
+      letterSpacing: 0.3,
+    },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: theme.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      marginTop: 28,
+      marginBottom: 4,
       marginHorizontal: 24,
-      marginTop: 16,
+    },
+    welcomeBanner: {
+      backgroundColor: theme.primary + '14',
+      borderRadius: 16,
+      padding: 16,
+      marginHorizontal: 20,
+      marginTop: 18,
       borderWidth: 1,
-      borderColor: theme.border,
+      borderColor: theme.primary + '33',
     },
     welcomeText: {
       fontSize: 15,
-      color: theme.textSecondary,
+      color: theme.text,
       textAlign: 'center',
       lineHeight: 22,
+      fontWeight: '500',
     },
     pointTypeCard: {
       backgroundColor: theme.card,
-      borderRadius: 16,
-      marginHorizontal: 24,
-      marginTop: 16,
+      borderRadius: 20,
+      marginHorizontal: 20,
+      marginTop: 14,
       borderWidth: 1,
       borderColor: theme.border,
       overflow: 'hidden',
+      ...theme.shadow.card,
     },
     pointTypeHeader: {
       flexDirection: 'row',
@@ -422,15 +564,29 @@ const styles = (theme: Theme) =>
       alignItems: 'center',
       padding: 20,
     },
+    pointTypeNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 12,
+    },
+    pointDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: theme.primary,
+      marginRight: 10,
+    },
     pointTypeName: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '700',
       color: theme.text,
+      flexShrink: 1,
     },
     pointTypeBalance: {
-      fontSize: 28,
-      fontWeight: '700',
-      color: theme.success,
+      fontSize: 30,
+      fontWeight: '800',
+      color: theme.primary,
     },
     rewardsList: {
       borderTopWidth: 1,
@@ -440,19 +596,20 @@ const styles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingVertical: 12,
+      paddingVertical: 14,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.border,
     },
     rewardRowDimmed: {
-      opacity: 0.5,
+      opacity: 0.55,
     },
     rewardInfo: {
       flex: 1,
+      marginRight: 12,
     },
     rewardName: {
       fontSize: 15,
-      fontWeight: '500',
+      fontWeight: '600',
       color: theme.text,
       marginBottom: 2,
     },
@@ -465,73 +622,55 @@ const styles = (theme: Theme) =>
     },
     rewardStatus: {
       fontSize: 12,
-      color: theme.error,
-      fontWeight: '500',
+      color: theme.coralDark,
+      fontWeight: '600',
       marginLeft: 12,
       flexShrink: 0,
       maxWidth: 140,
       textAlign: 'right',
     },
-    cardSection: {
-      alignItems: 'center',
-      marginTop: 16,
-      marginBottom: 8,
-    },
-    cardRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 20,
-    },
-    cardRowNarrow: {
-      flexDirection: 'column',
-    },
-    storeLogo: {
-      width: 120,
-      height: 120,
-      borderRadius: 12,
-    },
-    storeLogoNarrow: {
-      marginBottom: 16,
-    },
-    qrWrapper: {
-      backgroundColor: '#ffffff',
-      borderRadius: 16,
-      padding: 16,
-    },
-    qrLabel: {
-      fontSize: 13,
-      color: theme.textSecondary,
-      marginTop: 10,
-    },
     historyButton: {
       backgroundColor: theme.card,
-      borderRadius: 12,
-      padding: 16,
-      marginHorizontal: 24,
+      borderRadius: 16,
+      padding: 18,
+      marginHorizontal: 20,
       marginTop: 24,
       alignItems: 'center',
       borderWidth: 1,
       borderColor: theme.border,
+      ...theme.shadow.card,
     },
     historyButtonText: {
       fontSize: 15,
-      fontWeight: '500',
-      color: theme.accent,
+      fontWeight: '700',
+      color: theme.primary,
     },
     emptyState: {
       backgroundColor: theme.card,
-      borderRadius: 12,
-      padding: 24,
-      marginHorizontal: 24,
-      marginTop: 16,
+      borderRadius: 20,
+      padding: 28,
+      marginHorizontal: 20,
+      marginTop: 18,
       alignItems: 'center',
       borderWidth: 1,
       borderColor: theme.border,
+      ...theme.shadow.card,
+    },
+    emptyEmoji: {
+      fontSize: 40,
+      marginBottom: 12,
     },
     emptyText: {
-      fontSize: 15,
-      color: theme.textTertiary,
+      fontSize: 17,
+      fontWeight: '700',
+      color: theme.text,
+      marginBottom: 6,
+    },
+    emptySub: {
+      fontSize: 14,
+      color: theme.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
     },
     deletingOverlay: {
       ...StyleSheet.absoluteFillObject,

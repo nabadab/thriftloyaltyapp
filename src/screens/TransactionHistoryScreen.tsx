@@ -42,10 +42,11 @@ export const TransactionHistoryScreen: React.FC<TransactionHistoryScreenProps> =
       const data = await ApiService.getTransactions(token, storeId, offset);
       console.log('[TransactionHistory] Raw response:', JSON.stringify(data, null, 2));
 
+      const txns = data.transactions as Transaction[];
       if (offset === 0) {
-        setTransactions(data.transactions);
+        setTransactions(txns);
       } else {
-        setTransactions((prev) => [...prev, ...data.transactions]);
+        setTransactions((prev) => [...prev, ...txns]);
       }
       setTotal(data.total);
     } catch (err) {
@@ -190,49 +191,50 @@ export const TransactionHistoryScreen: React.FC<TransactionHistoryScreenProps> =
         )}
 
         <Text style={s.expandHint}>
-          {isExpanded ? 'Tap to collapse' : 'Tap for details'}
+          {isExpanded ? 'Tap to collapse ▴' : 'Tap for details ▾'}
         </Text>
       </TouchableOpacity>
     );
   };
 
+  const Header = () => (
+    <View style={s.header}>
+      <Text style={s.title}>History</Text>
+      <Text style={s.backButton} onPress={() => navigation.goBack()}>
+        Done
+      </Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={s.container}>
-        <View style={s.header}>
-          <Text style={s.title}>History</Text>
-          <Text style={s.backButton} onPress={() => navigation.goBack()}>
-            Done
-          </Text>
-        </View>
-        <ActivityIndicator color={theme.accent} style={{ marginTop: 40 }} />
+        <Header />
+        <ActivityIndicator color={theme.primary} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={s.container}>
-      <View style={s.header}>
-        <Text style={s.title}>History</Text>
-        <Text style={s.backButton} onPress={() => navigation.goBack()}>
-          Done
-        </Text>
-      </View>
+      <Header />
 
       <FlatList
         data={transactions}
         keyExtractor={(item) => item.id}
         renderItem={renderTransaction}
         contentContainerStyle={s.listContent}
+        showsVerticalScrollIndicator={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
         ListFooterComponent={
           loadingMore ? (
-            <ActivityIndicator color={theme.accent} style={{ marginVertical: 16 }} />
+            <ActivityIndicator color={theme.primary} style={{ marginVertical: 16 }} />
           ) : null
         }
         ListEmptyComponent={
           <View style={s.emptyState}>
+            <Text style={s.emptyEmoji}>🧾</Text>
             <Text style={s.emptyText}>No transaction history yet</Text>
           </View>
         }
@@ -256,38 +258,39 @@ const styles = (theme: Theme) =>
       paddingBottom: 8,
     },
     title: {
-      fontSize: 24,
-      fontWeight: '700',
+      fontSize: 26,
+      fontWeight: '800',
       color: theme.text,
     },
     backButton: {
       fontSize: 17,
-      fontWeight: '500',
-      color: theme.accent,
+      fontWeight: '600',
+      color: theme.primary,
     },
     listContent: {
-      paddingHorizontal: 24,
+      paddingHorizontal: 20,
       paddingBottom: 40,
     },
     txnCard: {
       backgroundColor: theme.card,
-      borderRadius: 12,
+      borderRadius: 16,
       marginTop: 12,
       borderWidth: 1,
       borderColor: theme.border,
       overflow: 'hidden',
+      ...theme.shadow.card,
     },
     txnSummary: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 16,
+      padding: 18,
     },
     txnInfo: {
       flex: 1,
     },
     txnDescription: {
       fontSize: 15,
-      fontWeight: '500',
+      fontWeight: '700',
       color: theme.text,
       marginBottom: 4,
     },
@@ -296,27 +299,27 @@ const styles = (theme: Theme) =>
       color: theme.textSecondary,
     },
     txnTotal: {
-      fontSize: 17,
-      fontWeight: '600',
+      fontSize: 18,
+      fontWeight: '800',
       color: theme.text,
       marginLeft: 12,
     },
     txnDetails: {
       borderTopWidth: 1,
       borderTopColor: theme.border,
-      paddingHorizontal: 16,
-      paddingTop: 12,
+      paddingHorizontal: 18,
+      paddingTop: 14,
       paddingBottom: 4,
     },
     detailSection: {
-      marginBottom: 12,
+      marginBottom: 14,
     },
     detailSectionTitle: {
       fontSize: 12,
-      fontWeight: '600',
-      color: theme.textTertiary,
+      fontWeight: '700',
+      color: theme.primary,
       textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      letterSpacing: 0.6,
       marginBottom: 8,
     },
     detailRow: {
@@ -334,26 +337,26 @@ const styles = (theme: Theme) =>
     detailValue: {
       fontSize: 14,
       color: theme.text,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     totalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 6,
+      paddingVertical: 8,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.border,
       marginTop: 4,
     },
     totalLabel: {
       fontSize: 15,
-      fontWeight: '600',
+      fontWeight: '700',
       color: theme.text,
     },
     totalValue: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: theme.text,
+      fontSize: 16,
+      fontWeight: '800',
+      color: theme.primary,
     },
     pointReason: {
       fontSize: 12,
@@ -363,17 +366,22 @@ const styles = (theme: Theme) =>
     expandHint: {
       fontSize: 12,
       color: theme.textTertiary,
+      fontWeight: '600',
       textAlign: 'center',
-      paddingVertical: 8,
+      paddingVertical: 10,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.border,
     },
     emptyState: {
       alignItems: 'center',
-      marginTop: 40,
+      marginTop: 48,
+    },
+    emptyEmoji: {
+      fontSize: 44,
+      marginBottom: 12,
     },
     emptyText: {
       fontSize: 15,
-      color: theme.textTertiary,
+      color: theme.textSecondary,
     },
   });

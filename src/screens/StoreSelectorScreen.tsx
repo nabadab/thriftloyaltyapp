@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   StyleSheet,
   TouchableOpacity,
   FlatList,
@@ -16,11 +17,45 @@ import { RootStackParamList, Store } from '../types';
 import { useTheme, Theme } from '../theme';
 import { ApiService } from '../services/api';
 import { StorageService } from '../services/storage';
+import { Pill } from '../components/ui';
 
-type SearchResultStore = Store & { isMember: boolean };
+// Search results aren't joined yet, so they have no customerId.
+type SearchResultStore = {
+  id: string;
+  name: string;
+  address: string;
+  phone?: string;
+  logoUrl?: string;
+  isMember: boolean;
+};
 
 type StoreSelectorScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'StoreSelector'>;
+};
+
+const StoreAvatar: React.FC<{
+  store: { name: string; logoUrl?: string };
+  theme: Theme;
+}> = ({ store, theme }) => {
+  const s = styles(theme);
+  if (store.logoUrl) {
+    return (
+      <View style={s.avatarChip}>
+        <Image
+          source={{ uri: store.logoUrl, cache: 'force-cache' }}
+          style={s.avatarLogo}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+  return (
+    <View style={[s.avatarChip, s.avatarFallback]}>
+      <Text style={s.avatarInitial}>
+        {store.name.trim().charAt(0).toUpperCase() || '?'}
+      </Text>
+    </View>
+  );
 };
 
 export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
@@ -139,29 +174,39 @@ export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
       style={[s.storeItem, item.id === activeStoreId && s.storeItemActive]}
       onPress={() => handleSelectStore(item)}
       onLongPress={() => handleLeaveStore(item)}
+      activeOpacity={0.7}
     >
+      <StoreAvatar store={item} theme={theme} />
       <View style={s.storeInfo}>
-        <Text style={s.storeName}>{item.name}</Text>
-        <Text style={s.storeAddress}>{item.address}</Text>
+        <Text style={s.storeName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={s.storeAddress} numberOfLines={1}>
+          {item.address}
+        </Text>
       </View>
-      {item.id === activeStoreId && (
-        <Text style={s.activeIndicator}>Active</Text>
-      )}
+      {item.id === activeStoreId && <Pill label="Active" tone="brand" />}
     </TouchableOpacity>
   );
 
   const renderSearchResultItem = ({ item }: { item: SearchResultStore }) => (
     <View style={s.storeItem}>
+      <StoreAvatar store={item} theme={theme} />
       <View style={s.storeInfo}>
-        <Text style={s.storeName}>{item.name}</Text>
-        <Text style={s.storeAddress}>{item.address}</Text>
+        <Text style={s.storeName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={s.storeAddress} numberOfLines={1}>
+          {item.address}
+        </Text>
       </View>
       {item.isMember ? (
-        <Text style={s.memberBadge}>Joined</Text>
+        <Pill label="Joined" tone="muted" />
       ) : (
         <TouchableOpacity
           style={s.joinButton}
           onPress={() => handleJoinStore(item)}
+          activeOpacity={0.8}
         >
           <Text style={s.joinButtonText}>Join</Text>
         </TouchableOpacity>
@@ -172,7 +217,7 @@ export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
   if (loading) {
     return (
       <SafeAreaView style={s.container}>
-        <ActivityIndicator color={theme.accent} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={theme.primary} style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
@@ -187,27 +232,31 @@ export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
       </View>
 
       <View style={s.searchContainer}>
-        <TextInput
-          style={s.searchInput}
-          placeholder="Search for a store to add..."
-          placeholderTextColor={theme.textTertiary}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={s.searchInputWrapper}>
+          <Text style={s.searchIcon}>🔍</Text>
+          <TextInput
+            style={s.searchInput}
+            placeholder="Search for a store to add..."
+            placeholderTextColor={theme.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
       </View>
 
       {isSearching ? (
         <>
           {searching && (
-            <ActivityIndicator color={theme.accent} style={{ marginTop: 16 }} />
+            <ActivityIndicator color={theme.primary} style={{ marginTop: 16 }} />
           )}
           <FlatList
             data={searchResults}
             keyExtractor={(item) => item.id}
             renderItem={renderSearchResultItem}
             contentContainerStyle={s.listContent}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               !searching ? (
                 <Text style={s.emptyText}>
@@ -227,6 +276,7 @@ export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
           contentContainerStyle={s.listContent}
           ListEmptyComponent={
             <View style={s.emptyContainer}>
+              <Text style={s.emptyEmoji}>🏬</Text>
               <Text style={s.emptyTitle}>No stores yet</Text>
               <Text style={s.emptySubtitle}>
                 Search above to find and join a store
@@ -235,9 +285,7 @@ export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
           }
           ListFooterComponent={
             myStores.length > 0 ? (
-              <Text style={s.footerHint}>
-                Long press a store to remove it
-              </Text>
+              <Text style={s.footerHint}>Long press a store to remove it</Text>
             ) : null
           }
         />
@@ -261,27 +309,37 @@ const styles = (theme: Theme) =>
       paddingBottom: 8,
     },
     title: {
-      fontSize: 24,
-      fontWeight: '700',
+      fontSize: 26,
+      fontWeight: '800',
       color: theme.text,
     },
     closeText: {
       fontSize: 17,
-      fontWeight: '500',
-      color: theme.accent,
+      fontWeight: '600',
+      color: theme.primary,
     },
     searchContainer: {
       paddingHorizontal: 24,
       paddingVertical: 12,
     },
-    searchInput: {
+    searchInputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
       backgroundColor: theme.inputBackground,
-      borderRadius: 12,
-      padding: 14,
-      fontSize: 16,
-      color: theme.text,
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: theme.border,
+      paddingHorizontal: 14,
+    },
+    searchIcon: {
+      fontSize: 15,
+      marginRight: 8,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: theme.text,
     },
     listContent: {
       paddingHorizontal: 24,
@@ -289,62 +347,80 @@ const styles = (theme: Theme) =>
     },
     storeItem: {
       backgroundColor: theme.card,
-      borderRadius: 12,
-      padding: 16,
+      borderRadius: 16,
+      padding: 14,
       marginTop: 12,
       flexDirection: 'row',
       alignItems: 'center',
       borderWidth: 1,
       borderColor: theme.border,
+      ...theme.shadow.card,
     },
     storeItemActive: {
-      borderColor: theme.accent,
+      borderColor: theme.primary,
       borderWidth: 2,
+    },
+    avatarChip: {
+      width: 52,
+      height: 52,
+      borderRadius: 14,
+      backgroundColor: '#ffffff',
+      borderWidth: 1,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+      overflow: 'hidden',
+    },
+    avatarLogo: {
+      width: 44,
+      height: 44,
+    },
+    avatarFallback: {
+      backgroundColor: theme.primary + '1A',
+      borderColor: theme.primary + '33',
+    },
+    avatarInitial: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.primary,
     },
     storeInfo: {
       flex: 1,
     },
     storeName: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '700',
       color: theme.text,
-      marginBottom: 4,
+      marginBottom: 3,
     },
     storeAddress: {
       fontSize: 13,
       color: theme.textSecondary,
     },
-    activeIndicator: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: theme.accent,
-      marginLeft: 12,
-    },
-    memberBadge: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: theme.textSecondary,
-      marginLeft: 12,
-    },
     joinButton: {
-      backgroundColor: theme.accent,
-      borderRadius: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      backgroundColor: theme.primary,
+      borderRadius: 10,
+      paddingHorizontal: 18,
+      paddingVertical: 9,
       marginLeft: 12,
     },
     joinButtonText: {
       color: '#fff',
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '700',
     },
     emptyContainer: {
       alignItems: 'center',
-      marginTop: 40,
+      marginTop: 48,
+    },
+    emptyEmoji: {
+      fontSize: 44,
+      marginBottom: 12,
     },
     emptyTitle: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: '700',
       color: theme.text,
       marginBottom: 8,
     },

@@ -7,9 +7,9 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -17,6 +17,7 @@ import { RootStackParamList } from '../types';
 import { useTheme, Theme } from '../theme';
 import { ApiService } from '../services/api';
 import { StorageService } from '../services/storage';
+import { GradientButton } from '../components/ui';
 
 type VerifyOTPScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'VerifyOTP'>;
@@ -72,40 +73,47 @@ export const VerifyOTPScreen: React.FC<VerifyOTPScreenProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={s.content}
       >
-        <Text style={s.title}>Enter Code</Text>
-        <Text style={s.subtitle}>
-          We sent a verification code to {formattedPhone}
-        </Text>
+        <View style={s.brandBlock}>
+          <LinearGradient
+            colors={theme.gradients.brand}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.iconBadge}
+          >
+            <Text style={s.iconMark}>✉️</Text>
+          </LinearGradient>
+          <Text style={s.title}>Enter your code</Text>
+          <Text style={s.subtitle}>
+            We sent a verification code to{'\n'}
+            <Text style={s.phoneText}>{formattedPhone}</Text>
+          </Text>
+        </View>
 
-        <TextInput
-          ref={inputRef}
-          style={s.codeInput}
-          placeholder="000000"
-          placeholderTextColor={theme.textTertiary}
-          value={code}
-          onChangeText={setCode}
-          keyboardType="number-pad"
-          maxLength={6}
-          autoFocus
-          editable={!loading}
-          textAlign="center"
-        />
+        <View style={s.card}>
+          <TextInput
+            ref={inputRef}
+            style={s.codeInput}
+            placeholder="000000"
+            placeholderTextColor={theme.textTertiary}
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+            maxLength={6}
+            autoFocus
+            editable={!loading}
+            textAlign="center"
+          />
 
-        <TouchableOpacity
-          style={[s.button, loading && s.buttonDisabled]}
-          onPress={handleVerify}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={s.buttonText}>Verify</Text>
-          )}
-        </TouchableOpacity>
+          <GradientButton
+            label="Verify"
+            onPress={handleVerify}
+            loading={loading}
+          />
 
-        <TouchableOpacity style={s.resendButton} onPress={handleResend}>
-          <Text style={s.resendText}>Resend Code</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={s.resendButton} onPress={handleResend}>
+            <Text style={s.resendText}>Resend code</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={s.backButton}
@@ -129,61 +137,75 @@ const styles = (theme: Theme) =>
       justifyContent: 'center',
       paddingHorizontal: 24,
     },
+    brandBlock: {
+      alignItems: 'center',
+      marginBottom: 28,
+    },
+    iconBadge: {
+      width: 72,
+      height: 72,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 18,
+      ...theme.shadow.hero,
+    },
+    iconMark: {
+      fontSize: 34,
+    },
     title: {
-      fontSize: 28,
-      fontWeight: '700',
+      fontSize: 26,
+      fontWeight: '800',
       color: theme.text,
       textAlign: 'center',
-      marginBottom: 8,
+      marginBottom: 10,
     },
     subtitle: {
       fontSize: 15,
       color: theme.textSecondary,
       textAlign: 'center',
-      marginBottom: 32,
+      lineHeight: 22,
+    },
+    phoneText: {
+      color: theme.text,
+      fontWeight: '700',
+    },
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: theme.border,
+      ...theme.shadow.card,
     },
     codeInput: {
       backgroundColor: theme.inputBackground,
-      borderRadius: 12,
-      padding: 16,
-      fontSize: 28,
-      fontWeight: '600',
+      borderRadius: 14,
+      padding: 18,
+      fontSize: 30,
+      fontWeight: '700',
       color: theme.text,
       borderWidth: 1,
       borderColor: theme.border,
-      marginBottom: 16,
-      letterSpacing: 8,
-    },
-    button: {
-      backgroundColor: theme.accent,
-      borderRadius: 12,
-      padding: 16,
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    buttonDisabled: {
-      opacity: 0.6,
-    },
-    buttonText: {
-      color: '#fff',
-      fontSize: 17,
-      fontWeight: '600',
+      marginBottom: 20,
+      letterSpacing: 10,
     },
     resendButton: {
       alignItems: 'center',
-      marginTop: 24,
+      marginTop: 18,
     },
     resendText: {
-      color: theme.accent,
+      color: theme.primary,
       fontSize: 15,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     backButton: {
       alignItems: 'center',
-      marginTop: 16,
+      marginTop: 24,
     },
     backText: {
       color: theme.textSecondary,
       fontSize: 14,
+      fontWeight: '500',
     },
   });

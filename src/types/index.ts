@@ -1,10 +1,12 @@
 export type RootStackParamList = {
+  Bootstrap: undefined;
   Login: undefined;
   VerifyOTP: { phone: string };
   Home: undefined;
   StoreSelector: undefined;
   Profile: undefined;
   TransactionHistory: undefined;
+  LoyaltyCard: undefined;
 };
 
 export type Store = {
