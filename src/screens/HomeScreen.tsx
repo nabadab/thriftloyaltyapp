@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
   useWindowDimensions,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,6 +25,7 @@ import { useTheme, Theme } from '../theme';
 import { StorageService } from '../services/storage';
 import { ApiService } from '../services/api';
 import { Pill } from '../components/ui';
+import { bustLogoCache, refreshLogoCache } from '../utils/logoCache';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -74,8 +76,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }, [loadData]),
   );
 
+  // Refresh logos (and balances) when the app returns to the foreground so an
+  // updated store logo doesn't stay stale after a warm resume.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refreshLogoCache();
+        loadData();
+      }
+    });
+    return () => sub.remove();
+  }, [loadData]);
+
   const onRefresh = async () => {
     setRefreshing(true);
+    refreshLogoCache();
     await loadData();
     setRefreshing(false);
   };
@@ -339,7 +354,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             {activeStore.logoUrl ? (
               <View style={s.logoChip}>
                 <Image
-                  source={{ uri: activeStore.logoUrl, cache: 'force-cache' }}
+                  source={{ uri: bustLogoCache(activeStore.logoUrl) }}
                   style={[s.storeLogo, isWide && s.storeLogoWide]}
                   resizeMode="contain"
                 />

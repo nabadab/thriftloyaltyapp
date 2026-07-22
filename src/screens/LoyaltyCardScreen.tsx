@@ -15,6 +15,7 @@ import { RootStackParamList, Store } from '../types';
 import { useTheme, Theme } from '../theme';
 import { StorageService } from '../services/storage';
 import { ApiService } from '../services/api';
+import { bustLogoCache } from '../utils/logoCache';
 
 type LoyaltyCardScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'LoyaltyCard'>;
@@ -79,7 +80,7 @@ export const LoyaltyCardScreen: React.FC<LoyaltyCardScreenProps> = ({
             {activeStore.logoUrl ? (
               <View style={s.logoChip}>
                 <Image
-                  source={{ uri: activeStore.logoUrl, cache: 'force-cache' }}
+                  source={{ uri: bustLogoCache(activeStore.logoUrl) }}
                   style={s.storeLogo}
                   resizeMode="contain"
                 />

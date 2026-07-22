@@ -18,6 +18,7 @@ import { useTheme, Theme } from '../theme';
 import { ApiService } from '../services/api';
 import { StorageService } from '../services/storage';
 import { Pill } from '../components/ui';
+import { bustLogoCache, refreshLogoCache } from '../utils/logoCache';
 
 // Search results aren't joined yet, so they have no customerId.
 type SearchResultStore = {
@@ -42,7 +43,7 @@ const StoreAvatar: React.FC<{
     return (
       <View style={s.avatarChip}>
         <Image
-          source={{ uri: store.logoUrl, cache: 'force-cache' }}
+          source={{ uri: bustLogoCache(store.logoUrl) }}
           style={s.avatarLogo}
           resizeMode="contain"
         />
@@ -122,6 +123,7 @@ export const StoreSelectorScreen: React.FC<StoreSelectorScreenProps> = ({
       if (!token) return;
       await ApiService.setActiveStore(token, store.id);
       await StorageService.setActiveStoreId(store.id);
+      refreshLogoCache();
       navigation.goBack();
     } catch (err) {
       console.log('[StoreSelector] Failed to set active store:', err);
